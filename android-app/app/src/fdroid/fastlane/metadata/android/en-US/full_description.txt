@@ -1,0 +1,7 @@
+WAYQO combines a self-custodial Solana wallet with provider-backed local QR payment routes.
+
+Scan with the camera, import a QR image, or share a screenshot. Review the recipient, local-currency amount, rate and exact wallet debit before authorizing a payment. Local wallet keys remain on the device; encrypted recovery exports and wallet switching are available.
+
+The independent build uses an open source QR decoder without Google ML Kit or Play Services. Account registration, identity verification and payout availability depend on provider rules and the recipient country. No payment is enabled solely because a QR format is recognized.
+
+This version is in preparation. Sandbox tests do not establish production payment availability. Its app ID and wallet storage are separate from Google Play and sandbox installations.

@@ -1,0 +1,7 @@
+{
+  "id": "app.wayqo.wallet.fdroid",
+  "url": "https://github.com/xcyber7/wayqo-android",
+  "author": "Black Flag International Limited",
+  "name": "WAYQO Open",
+  "additionalSettings": "{\"apkFilterRegEx\":\"^wayqo-open-(?!.*-unsigned[.]apk$)[0-9].*[.]apk$\",\"filterReleaseTitlesByRegEx\":\"^WAYQO Open .*independent Android build$\"}"
+}

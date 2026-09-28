@@ -1,0 +1,137 @@
+name: Android independent release package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Independent release version name
+        required: true
+        type: string
+      version_code:
+        description: Version code above all previous independent releases
+        required: true
+        type: string
+      publish_draft:
+        description: Sign and create a GitHub draft release (requires independent signing secrets)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-independent-release
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+    env:
+      PAY_API_BASE_URL: ${{ vars.PAY_API_BASE_URL }}
+      PAY_SOLANA_RPC_URL: ${{ vars.PAY_SOLANA_RPC_URL }}
+      RELEASE_VERSION: ${{ inputs.version_name }}
+      RELEASE_CODE: ${{ inputs.version_code }}
+      PUBLISH_DRAFT: ${{ inputs.publish_draft }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v6
+      - run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Validate independent release configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]] || exit 1
+          [[ "$RELEASE_CODE" =~ ^[1-9][0-9]*$ ]] || exit 1
+          if (( RELEASE_CODE > 2100000000 )); then exit 1; fi
+          case "$PAY_API_BASE_URL" in
+            https://*) ;;
+            *) echo 'Configure PAY_API_BASE_URL with the production HTTPS origin' >&2; exit 1 ;;
+          esac
+          case "$PAY_API_BASE_URL" in
+            https://unbound-api.onrender.com|*example.invalid*|*/|*/v1)
+              echo 'An independent public release must target a configured production backend' >&2; exit 1 ;;
+          esac
+          [[ "$PAY_SOLANA_RPC_URL" == https://* ]] || exit 1
+
+      - name: Prepare independent signing key
+        if: inputs.publish_draft
+        env:
+          SIGNING_KEY: ${{ secrets.DISTRIBUTION_KEYSTORE_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.DISTRIBUTION_KEYSTORE_PASSWORD }}
+          SIGNING_ALIAS: ${{ secrets.DISTRIBUTION_KEY_ALIAS }}
+          SIGNING_ALIAS_PASSWORD: ${{ secrets.DISTRIBUTION_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${SIGNING_KEY:?Missing DISTRIBUTION_KEYSTORE_BASE64}"
+          : "${SIGNING_PASSWORD:?Missing DISTRIBUTION_KEYSTORE_PASSWORD}"
+          : "${SIGNING_ALIAS:?Missing DISTRIBUTION_KEY_ALIAS}"
+          : "${SIGNING_ALIAS_PASSWORD:?Missing DISTRIBUTION_KEY_PASSWORD}"
+          umask 077
+          printf '%s' "$SIGNING_KEY" | base64 --decode > "$RUNNER_TEMP/wayqo-independent.jks"
+          echo "ORG_GRADLE_PROJECT_PAY_KEYSTORE_FILE=$RUNNER_TEMP/wayqo-independent.jks" >> "$GITHUB_ENV"
+          printf 'ORG_GRADLE_PROJECT_PAY_KEYSTORE_PASSWORD=%s\n' "$SIGNING_PASSWORD" >> "$GITHUB_ENV"
+          printf 'ORG_GRADLE_PROJECT_PAY_KEY_ALIAS=%s\n' "$SIGNING_ALIAS" >> "$GITHUB_ENV"
+          printf 'ORG_GRADLE_PROJECT_PAY_KEY_PASSWORD=%s\n' "$SIGNING_ALIAS_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Build independent APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./android-app/gradlew -p android-app --no-daemon \
+            testFdroidDebugUnitTest lintFdroidRelease assembleFdroidRelease \
+            -PPAY_API_BASE_URL="$PAY_API_BASE_URL" \
+            -PPAY_IDENTITY_URI="$PAY_API_BASE_URL" \
+            -PPAY_SOLANA_RPC_URL="$PAY_SOLANA_RPC_URL" \
+            -PPAY_VERSION_NAME="$RELEASE_VERSION" -PPAY_VERSION_CODE="$RELEASE_CODE"
+          mkdir -p independent-package
+          if [[ "$PUBLISH_DRAFT" == true ]]; then
+            apk=android-app/app/build/outputs/apk/fdroid/release/app-fdroid-release.apk
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" > independent-package/signing-certificate.txt
+            cp "$apk" "independent-package/wayqo-open-$RELEASE_VERSION.apk"
+          else
+            cp android-app/app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk \
+              "independent-package/wayqo-open-$RELEASE_VERSION-unsigned.apk"
+          fi
+          (cd independent-package && sha256sum ./*.apk > SHA256SUMS)
+          git rev-parse HEAD > independent-package/source-commit.txt
+          cp packaging/obtainium/wayqo.json independent-package/
+          cp android-app/LICENSE independent-package/GPL-3.0.txt
+          cp android-app/TRADEMARK_POLICY.md independent-package/
+          cp android-app/THIRD_PARTY_NOTICES.md independent-package/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wayqo-independent-package-${{ inputs.version_name }}
+          path: independent-package/
+          if-no-files-found: error
+
+      - name: Create reviewable draft release
+        if: inputs.publish_draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
+          WAYQO Open build with the open source QR decoder and no Google ML Kit.
+          Package ID: app.wayqo.wallet.fdroid. It has separate wallet storage from Play and sandbox builds.
+          Verify SHA256SUMS and the signing certificate before installation.
+          All account, provider, quote, order and signing checks remain in force.
+          This draft does not establish F-Droid acceptance or production payment availability.
+          EOF
+          gh release create "open-v$RELEASE_VERSION" independent-package/* \
+            --target "$GITHUB_SHA" --title "WAYQO Open $RELEASE_VERSION · independent Android build" \
+            --draft --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      - name: Remove temporary signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/wayqo-independent.jks"

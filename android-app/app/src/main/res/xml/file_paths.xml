@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Signed data exports are written to cacheDir/exports and shared via a
+         time-limited content URI. -->
+    <cache-path name="exports" path="exports/" />
+</paths>

@@ -1,0 +1,12 @@
+android-app/.gradle/
+android-app/.kotlin/
+android-app/local.properties
+android-app/**/build/
+*.apk
+*.aab
+*.jks
+*.keystore
+*.p12
+*.key
+*.pem
+*.env

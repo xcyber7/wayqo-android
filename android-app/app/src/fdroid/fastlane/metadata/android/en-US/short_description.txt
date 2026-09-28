@@ -1,0 +1,1 @@
+Self-custodial wallet and local QR payments

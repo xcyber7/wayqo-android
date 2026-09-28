@@ -1,0 +1,31 @@
+name: WAYQO Open Android
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v6
+      - run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - run: >-
+          ./android-app/gradlew -p android-app --no-daemon
+          testFdroidDebugUnitTest lintFdroidDebug assembleFdroidDebug
+          assembleFdroidRelease
+          :app:writeOpenDependencyInventory
+      - name: Check runtime license inventory
+        run: |
+          python3 scripts/audit-open-dependencies.py \
+            --coordinates android-app/app/build/reports/open-runtime-coordinates.txt \
+            --output android-app/app/src/main/assets/legal/DEPENDENCIES.txt
+          git diff --exit-code -- android-app/app/src/main/assets/legal/DEPENDENCIES.txt

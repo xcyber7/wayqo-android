@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android resizes splash drawables. Relative insets keep the full wordmark
+     within the icon safe area even when its bounds differ from the nominal 288dp. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="18.75%" android:insetRight="18.75%"
+    android:insetTop="43.45%" android:insetBottom="43.45%">
+    <bitmap android:src="@drawable/wayqo_logo" android:gravity="fill" android:filter="true" />
+</inset>

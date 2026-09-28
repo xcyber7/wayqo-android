@@ -1,0 +1,31 @@
+Categories:
+  - Money
+License: GPL-3.0-only
+AuthorName: Black Flag International Limited
+WebSite: https://www.wayqo.app/
+SourceCode: https://github.com/xcyber7/wayqo-android
+IssueTracker: https://github.com/xcyber7/wayqo-android/issues
+RepoType: git
+Repo: https://github.com/xcyber7/wayqo-android.git
+Disabled: Awaiting production API configuration and reviewed public source commit
+AntiFeatures:
+  NonFreeNet:
+    en-US: Local merchant payments require proprietary recipient and payout provider services.
+AutoUpdateMode: None
+UpdateCheckMode: None
+MaintainerNotes: |
+  Preparation only, not an accepted listing. The public Android-only export
+  uses GPL-3.0-only, excludes the Standard source set and proprietary scanner,
+  and preserves the shared payment/recovery code. Runtime license inventory
+  and upstream notices are bundled. Configure the production API origin,
+  freeze a reviewed public commit and run F-Droid review before enabling.
+Builds:
+  - versionName: 0.1.0
+    versionCode: 1
+    commit: PUBLIC_SOURCE_COMMIT_REQUIRED
+    subdir: android-app
+    gradle:
+      - fdroid
+    gradleprops:
+      - PAY_VERSION_NAME=0.1.0
+      - PAY_VERSION_CODE=1

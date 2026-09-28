@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape><solid android:color="#F7F7F8" /></shape></item>
+    <item android:width="280dp" android:height="59dp" android:gravity="center">
+        <bitmap android:src="@drawable/wayqo_logo" android:gravity="fill" android:filter="true" />
+    </item>
+</layer-list>
