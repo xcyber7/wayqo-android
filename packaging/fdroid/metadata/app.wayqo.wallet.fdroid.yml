@@ -22,7 +22,7 @@ MaintainerNotes: |
 Builds:
   - versionName: 0.1.0
     versionCode: 1
-    commit: PUBLIC_SOURCE_COMMIT_REQUIRED
+    commit: e681f356360fae2c3212a782d029d66d4f686f93
     subdir: android-app
     gradle:
       - fdroid
