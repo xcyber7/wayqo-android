@@ -142,6 +142,7 @@ android {
 tasks.register("writeOpenDependencyInventory") {
     val output = layout.buildDirectory.file("reports/open-runtime-coordinates.txt")
     outputs.file(output)
+    outputs.upToDateWhen { false }
     doLast {
         val coordinates = configurations.getByName("fdroidReleaseRuntimeClasspath")
             .resolvedConfiguration.resolvedArtifacts.map { it.moduleVersion.id.toString() }.distinct().sorted()

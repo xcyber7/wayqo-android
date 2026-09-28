@@ -26,6 +26,7 @@ jobs:
       - name: Check runtime license inventory
         run: |
           python3 scripts/audit-open-dependencies.py \
+            --fetch-missing-poms \
             --coordinates android-app/app/build/reports/open-runtime-coordinates.txt \
             --output android-app/app/src/main/assets/legal/DEPENDENCIES.txt
           git diff --exit-code -- android-app/app/src/main/assets/legal/DEPENDENCIES.txt
