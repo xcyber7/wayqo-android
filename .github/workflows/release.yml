@@ -15,6 +15,12 @@ on:
         description: Sign and create a GitHub draft release (requires independent signing secrets)
         type: boolean
         default: false
+      beta:
+        description: >-
+          Public BETA against the sandbox backend (payments disabled). Allows the
+          unbound-api.onrender.com origin and labels the release as a non-payable preview.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -34,6 +40,7 @@ jobs:
       RELEASE_VERSION: ${{ inputs.version_name }}
       RELEASE_CODE: ${{ inputs.version_code }}
       PUBLISH_DRAFT: ${{ inputs.publish_draft }}
+      RELEASE_BETA: ${{ inputs.beta }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v5
@@ -55,10 +62,22 @@ jobs:
             https://*) ;;
             *) echo 'Configure PAY_API_BASE_URL with the production HTTPS origin' >&2; exit 1 ;;
           esac
-          case "$PAY_API_BASE_URL" in
-            https://unbound-api.onrender.com|*example.invalid*|*/|*/v1)
-              echo 'An independent public release must target a configured production backend' >&2; exit 1 ;;
-          esac
+          if [[ "$RELEASE_BETA" == true ]]; then
+            # Beta: a sandbox-backed, non-payable public preview. The sandbox origin is
+            # permitted, but the version must carry a beta marker so it can never be
+            # mistaken for a production release.
+            [[ "$RELEASE_VERSION" == *-beta* ]] || { echo 'Beta releases must include a -beta version marker' >&2; exit 1; }
+            case "$PAY_API_BASE_URL" in
+              *example.invalid*|*/|*/v1)
+                echo 'A beta release still needs a concrete backend origin' >&2; exit 1 ;;
+            esac
+          else
+            [[ "$RELEASE_VERSION" != *-beta* ]] || { echo 'Non-beta releases must not use a -beta version marker; set beta=true' >&2; exit 1; }
+            case "$PAY_API_BASE_URL" in
+              https://unbound-api.onrender.com|*example.invalid*|*/|*/v1)
+                echo 'An independent public release must target a configured production backend (or set beta=true for a sandbox preview)' >&2; exit 1 ;;
+            esac
+          fi
           [[ "$PAY_SOLANA_RPC_URL" == https://* ]] || exit 1
 
       - name: Prepare independent signing key
@@ -121,7 +140,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
+          : > "$RUNNER_TEMP/release-notes.md"
+          if [[ "$RELEASE_BETA" == true ]]; then
+            cat >> "$RUNNER_TEMP/release-notes.md" <<'EOF'
+          ## Public BETA — payments disabled
+
+          This build targets the **sandbox** backend. You can install it, create or restore a
+          wallet, sign in and use Receive, but **real payments are disabled** (sandbox Gaian).
+          Do not treat any on-chain action as a funded transfer. A payable release will follow
+          once the production backend is live.
+
+          EOF
+          fi
+          cat >> "$RUNNER_TEMP/release-notes.md" <<'EOF'
           WAYQO Open build with the open source QR decoder and no Google ML Kit.
           Package ID: app.wayqo.wallet.fdroid. It has separate wallet storage from Play and sandbox builds.
           Verify SHA256SUMS and the signing certificate before installation.
