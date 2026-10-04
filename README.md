@@ -6,6 +6,12 @@ runtime. Keys stay on the device. Payment availability, recipient verification,
 quotes, identity checks and settlement are controlled by the configured service
 and its providers; recognizing a QR does not authorize a payment.
 
+The [signed WAYQO Open 0.1.0-beta](https://github.com/xcyber7/wayqo-android/releases/latest)
+is available for Android. It connects to a sandbox backend: you can explore the
+wallet, but **real merchant payments are disabled**. The
+[traveller guide](https://www.wayqo.app/travel/) explains the intended QR-payment
+flow and planned destinations without treating them as live coverage.
+
 ## Build
 
 Install JDK 17 and Android SDK platform 36 / build-tools 35.0.0, then:
@@ -30,10 +36,13 @@ signing certificates, and switching IDs requires an explicit recovery import.
 
 ## Distribution
 
-Signed official downloads and an F-Droid listing are in preparation. No listing,
-production availability or signed public release is claimed by this source
-publication. Direct downloads will be published on this repository's Releases
-page after production configuration and signing checks pass.
+The [signed beta APK](https://github.com/xcyber7/wayqo-android/releases/latest)
+and its SHA-256 checksum and signing-certificate record are on the Releases page.
+For updates, use that same direct-download channel or the
+[Obtainium import](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/xcyber7/wayqo-android).
+An official F-Droid listing and a funded-payment release are in preparation;
+neither is available yet. Never uninstall a wallet to switch edition or signing
+channel before checking your encrypted recovery backup.
 
 ## License
 
